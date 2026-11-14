@@ -137,29 +137,59 @@ window.AMI = window.AMI || {};
 
   function migrate(st) {
     var targetEmail = "werleyvenceslau17@gmail.com";
-    var main = st.users.filter(function (u) { return u.email === targetEmail; })[0];
+    var users = st.users || [];
+    var main = users.filter(function (u) { return u.email === targetEmail; })[0];
+    var changed = false;
+    var action = "";
     if (!main) {
-      var legacy = st.users.filter(function (u) { return u.email === "admin@ami.com"; })[0];
+      var legacy = users.filter(function (u) { return u.email === "admin@ami.com"; })[0];
       if (legacy) {
         legacy.name = "Werley Venceslau";
         legacy.email = targetEmail;
-        legacy.units = ["pacheco", "amendoeira"];
         legacy.role = "admin";
+        legacy.units = ["pacheco", "amendoeira"];
+        main = legacy;
         (st.audit || []).forEach(function (a) {
           if (a.actorId === legacy.id) a.actorName = "Werley Venceslau";
         });
-        (st.audit || []).unshift({
-          id: uid("au"), at: new Date().toISOString(), actorId: "sistema", actorName: "Sistema",
-          action: "Administrador principal atualizado", target: "Werley Venceslau", unit: "pacheco",
-          before: { email: "admin@ami.com", unidades: ["pacheco", "amendoeira"] },
-          after: { email: targetEmail, unidades: ["pacheco", "amendoeira"] }
-        });
+        action = "Administrador principal atualizado";
+      } else {
+        main = {
+          id: "u-werley", name: "Werley Venceslau", email: targetEmail, phone: "(11) 98888-1001",
+          units: ["pacheco", "amendoeira"], role: "admin",
+          teamIds: [], functions: [], permissions: [], conductor: "",
+          status: "ativo",
+          lgpd: { status: "pendente", at: null, version: (st.settings && st.settings.lgpdVersion) || TERM_VERSION },
+          firstAccess: { done: true, at: new Date().toISOString(), month: monthOf(todayISO()) },
+          createdAt: new Date().toISOString(), blockedReason: "", note: ""
+        };
+        users.push(main);
+        action = "Administrador principal criado";
+      }
+      changed = true;
+    } else if (main.role !== "admin" || main.units.indexOf("pacheco") < 0 || main.units.indexOf("amendoeira") < 0) {
+      main.role = "admin";
+      main.units = ["pacheco", "amendoeira"];
+      action = "Administrador principal atualizado";
+      changed = true;
+    }
+    var cesar = users.filter(function (u) { return u.email === "cesarigrejaami@gmail.com"; })[0];
+    if (cesar) {
+      if (cesar.role !== "admin" || cesar.units.length !== 1 || cesar.units[0] !== "amendoeira") {
+        cesar.role = "admin";
+        cesar.units = ["amendoeira"];
+        if (!changed) action = "Acesso da Amendoeira ajustado";
+        changed = true;
       }
     }
-    var cesar = st.users.filter(function (u) { return u.email === "cesarigrejaami@gmail.com"; })[0];
-    if (cesar) {
-      cesar.role = "admin";
-      cesar.units = ["amendoeira"];
+    if (changed) {
+      st.audit = st.audit || [];
+      st.audit.unshift({
+        id: uid("au"), at: new Date().toISOString(), actorId: "sistema", actorName: "Sistema",
+        action: action, target: "Werley Venceslau", unit: "pacheco",
+        before: { email: "admin@ami.com", unidades: ["pacheco", "amendoeira"] },
+        after: { email: targetEmail, unidades: ["pacheco", "amendoeira"] }
+      });
     }
   }
 
