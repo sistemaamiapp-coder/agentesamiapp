@@ -187,7 +187,7 @@
             '<span class="help">Cada voluntário pode pertencer a uma ou às duas unidades.</span></div>' +
           '<div class="field full"><label>Qual o nome do seu Condutor(a) <span class="req">*</span></label><input class="input" name="conductor" value="' + esc(user.conductor) + '" placeholder="Sua resposta" /></div>' +
           '<div class="field full"><label>Mês de disponibilidade <span class="req">*</span></label><select class="select" name="month">' + monthOptions(month) + "</select>" +
-            '<span class="help">O mês é configurável pelo administrador. A disponibilidade é marcada depois, no calendário do seu perfil.</span></div>' +
+            '<span class="help">O mês corrente é usado como referência. A disponibilidade é marcada depois, no calendário do seu perfil.</span></div>' +
         "</div>" +
         '<div class="alert warn">' + N.icon("alert") + '<div><b>Não será possível editar estas respostas depois do envio.</b> Elas serão enviadas ao administrador e armazenadas no seu cadastro.</div></div>' +
         '<div class="field" style="gap:10px;border:1px solid var(--line);border-radius:12px;padding:14px;background:rgba(255,255,255,.02)">' +

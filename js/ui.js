@@ -179,15 +179,6 @@
     }).join("");
   }
 
-  function download(filename, content, mime) {
-    var blob = new Blob([content], { type: mime || "text/plain;charset=utf-8" });
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement("a");
-    a.href = url; a.download = filename;
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(function () { URL.revokeObjectURL(url); }, 1500);
-  }
-
   function formValues(form) {
     var out = {};
     Array.prototype.forEach.call(form.elements, function (el) {
@@ -228,7 +219,6 @@
   N.empty = empty;
   N.kpi = kpi;
   N.options = options;
-  N.download = download;
   N.formValues = formValues;
   N.initialsAvatarRow = initialsAvatarRow;
 })(window.AMI);

@@ -1,4 +1,4 @@
-/* Área administrativa: usuários, equipes, eventos, disponibilidades, trocas, histórico e configurações */
+/* Área administrativa: usuários, equipes, eventos, disponibilidades, trocas e histórico */
 (function (N) {
   "use strict";
   var U = N.util;
@@ -1075,137 +1075,6 @@
     }
   };
 
-  /* ================================ CONFIGURAÇÕES ================================ */
-  var settings = {
-    render: function () {
-      if (!N.isAdmin()) return N.empty("Acesso restrito", "Configurações disponíveis apenas para administradores.", "shield");
-      var st = N.state().settings;
-      var body =
-        '<div class="grid-2" style="align-items:start">' +
-          '<div class="stack">' +
-            '<div class="card"><div class="card-title"><h3>Disponibilidade e calendário</h3></div>' +
-              '<div class="field" style="margin-bottom:12px"><label>Mês de disponibilidade corrente</label><input class="input" type="month" id="s-month" value="' + esc(st.availabilityMonth) + '" />' +
-                '<span class="help">Este mês é usado no formulário inicial e como referência do calendário. Não há mês fixo no sistema.</span></div>' +
-              '<div class="field"><label>Sessão</label><select class="select" id="s-session">' +
-                N.options([{ value: 4, label: "4 horas" }, { value: 8, label: "8 horas" }, { value: 12, label: "12 horas" }, { value: 24, label: "24 horas" }], st.sessionHours) + "</select>" +
-                '<span class="help">Tempo de inatividade antes de exigir novo login.</span></div>' +
-            "</div>" +
-            '<div class="card"><div class="card-title"><h3>Unidades e acessos</h3></div>' +
-              '<label class="check" style="margin-bottom:10px"><input type="checkbox" id="s-amend" ' + (st.amendoeiraAccessGranted ? "checked" : "") + " /> Liberar o acesso administrativo da unidade Amendoeira</label>" +
-              '<p class="small muted" style="margin:0 0 12px">O administrador da unidade Pacheco possui acesso completo às duas unidades e pode liberar o acesso do administrador da Amendoeira. O e-mail cesarigrejaami@gmail.com é administrador exclusivamente da Amendoeira.</p>' +
-              '<div class="field"><label>WhatsApp do administrador (notificações de troca)</label><input class="input" id="s-admin-wa" value="' + esc(st.adminWhatsapp || "(11) 98888-1001") + '" /></div>' +
-            "</div>" +
-            '<div class="card"><div class="card-title"><h3>Termo LGPD</h3></div>' +
-              '<div class="row-between"><span class="small muted">Versão do termo</span><span class="badge blue plain">' + esc(st.lgpdVersion) + "</span></div>" +
-              '<p class="small muted" style="margin:10px 0">Os consentimentos são registrados com data, hora e versão. Ao alterar a versão, os próximos aceites já usarão o novo número.</p>' +
-              '<button class="btn btn-ghost btn-sm" id="s-bump-lgpd">Registrar nova versão do termo</button>' +
-            "</div>" +
-          "</div>" +
-          '<div class="stack">' +
-            '<div class="card"><div class="card-title"><h3>Backup e recuperação</h3></div>' +
-              '<p class="small muted" style="margin-top:0">Exporte uma cópia completa dos dados ou restaure um backup. Recomenda-se gerar o arquivo antes de mudanças estruturais.</p>' +
-              '<div class="btn-group"><button class="btn btn-primary btn-sm" id="s-export">' + N.icon("download") + " Exportar backup</button>" +
-              '<button class="btn btn-ghost btn-sm" id="s-import">' + N.icon("upload") + " Importar backup</button></div>" +
-              '<input type="file" id="s-file" accept="application/json" class="hidden" />' +
-              '<div class="tiny" style="margin-top:12px;letter-spacing:0;text-transform:none">Última exportação: ' + esc(st.lastBackup ? U.fmtDateTime(st.lastBackup) : "nunca") + "</div>" +
-            "</div>" +
-            '<div class="card"><div class="card-title"><h3>WhatsApp</h3></div>' +
-              '<p class="small muted" style="margin-top:0">As mensagens de uma escala são preparadas em uma única operação. Links <span class="mono">wa.me</span> abrem conversas individuais. Para envio automático e coletivo é necessária a API oficial do WhatsApp Business ou um provedor compatível.</p>' +
-              '<div class="row"><span class="badge amber">Modo atual: wa.me</span><span class="badge gray">API oficial: não configurada</span></div>' +
-            "</div>" +
-            '<div class="card"><div class="card-title"><h3>Dados do sistema</h3></div>' +
-              '<div class="row-between small"><span class="muted">Usuários</span><b>' + N.state().users.length + "</b></div>" +
-              '<div class="row-between small" style="margin-top:6px"><span class="muted">Escalas</span><b>' + N.state().schedules.length + "</b></div>" +
-              '<div class="row-between small" style="margin-top:6px"><span class="muted">Registros de auditoria</span><b>' + N.state().audit.length + "</b></div>" +
-              '<div class="row-between small" style="margin-top:6px"><span class="muted">Termo vigente</span><b>v' + esc(st.lgpdVersion) + "</b></div>" +
-              '<hr class="divider" />' +
-              '<button class="btn btn-danger btn-sm" id="s-reset">Restaurar dados de demonstração</button>' +
-              '<p class="tiny" style="margin:10px 0 0;letter-spacing:0;text-transform:none">A restauração apaga os dados atuais deste navegador.</p>' +
-            "</div>" +
-          "</div>" +
-        "</div>" +
-        '<div class="alert info" style="margin-top:16px">' + N.icon("shield") + "<div><b>Requisitos técnicos:</b> nesta versão local, os dados são persistidos no navegador (localStorage) com controle de sessão, auditoria e backup em arquivo. A implantação em produção deve usar servidor com banco de dados, autenticação por e-mail, permissões validadas no servidor, proteção dos dados por unidade e rotinas de backup automatizadas.</div></div>";
-
-      return N.pageHead("Configurações", "Mês de disponibilidade, acessos multiunidade, LGPD, backup e integração.", "") + body;
-    },
-    mount: function () {
-      if (!N.isAdmin()) return;
-      var st = N.state().settings;
-      function saveSettings(partial, action, before) {
-        Object.keys(partial).forEach(function (k) { st[k] = partial[k]; });
-        N.audit(action, "Configurações do sistema", before, partial);
-        N.persist();
-        N.toast("Configurações atualizadas.", "ok");
-      }
-      document.getElementById("s-month").addEventListener("change", function (e) {
-        saveSettings({ availabilityMonth: e.target.value }, "Mês de disponibilidade alterado", { mês: st.availabilityMonth });
-      });
-      document.getElementById("s-session").addEventListener("change", function (e) {
-        saveSettings({ sessionHours: Number(e.target.value) }, "Tempo de sessão alterado", { horas: st.sessionHours });
-      });
-      document.getElementById("s-amend").addEventListener("change", function (e) {
-        saveSettings({ amendoeiraAccessGranted: e.target.checked }, "Acesso da Amendoeira " + (e.target.checked ? "liberado" : "revogado"), { liberado: !e.target.checked });
-        N.notify({ title: "Acesso da unidade Amendoeira", audience: "admin", unit: "amendoeira", type: "acesso", text: "O acesso administrativo da Amendoeira foi " + (e.target.checked ? "liberado" : "revogado") + " pelo administrador de Pacheco." });
-      });
-      var wa = document.getElementById("s-admin-wa");
-      wa.addEventListener("change", function () {
-        saveSettings({ adminWhatsapp: wa.value.trim() }, "WhatsApp do administrador alterado", null);
-      });
-      document.getElementById("s-bump-lgpd").addEventListener("click", function () {
-        N.confirm({
-          title: "Nova versão do termo LGPD",
-          text: "Registrar uma nova versão do termo? Os próximos consentimentos usarão a nova versão. Os aceites anteriores permanecem registrados com a versão original.",
-          confirmLabel: "Registrar nova versão",
-          onConfirm: function () {
-            var parts = String(st.lgpdVersion).split(".");
-            var next = (Number(parts[0]) || 1) + "." + ((Number(parts[1]) || 0) + 1);
-            var before = st.lgpdVersion;
-            st.lgpdVersion = next;
-            N.audit("Versão do termo LGPD atualizada", "Termo de consentimento", { versão: before }, { versão: next });
-            N.persist();
-            N.render();
-            N.toast("Termo atualizado para a versão " + next + ".", "ok");
-          }
-        });
-      });
-      document.getElementById("s-export").addEventListener("click", function () {
-        st.lastBackup = new Date().toISOString();
-        N.persist();
-        N.download("agentes-do-amor-ami-backup-" + U.todayISO() + ".json", N.exportBackup(), "application/json");
-        N.audit("Backup exportado", "Arquivo JSON", null, { arquivo: "agentes-do-amor-ami-backup-" + U.todayISO() + ".json" });
-        N.toast("Backup gerado.", "ok");
-      });
-      document.getElementById("s-import").addEventListener("click", function () {
-        document.getElementById("s-file").click();
-      });
-      document.getElementById("s-file").addEventListener("change", function (e) {
-        var file = e.target.files[0];
-        if (!file) return;
-        var reader = new FileReader();
-        reader.onload = function () {
-          var res = N.importBackup(reader.result);
-          if (!res.ok) { N.toast(res.message, "warn"); return; }
-          N.toast("Backup restaurado.", "ok");
-          N.render();
-        };
-        reader.readAsText(file);
-      });
-      document.getElementById("s-reset").addEventListener("click", function () {
-        N.confirm({
-          title: "Restaurar demonstração",
-          text: "Todos os dados atuais deste navegador serão substituídos pelos dados de demonstração. Deseja continuar?",
-          confirmLabel: "Restaurar", danger: true,
-          onConfirm: function () {
-            N.resetState();
-            N.clearSession();
-            N.toast("Dados de demonstração restaurados.", "ok");
-            N.render();
-          }
-        });
-      });
-    }
-  };
-
   N.views["painel"] = panel;
   N.views["usuarios"] = users;
   N.views["voluntarios"] = volunteers;
@@ -1215,7 +1084,6 @@
   N.views["trocas"] = swaps;
   N.views["notificacoes"] = notifications;
   N.views["historico"] = history;
-  N.views["configuracoes"] = settings;
 
   N.adminUi = uiState;
   N.openUserModal = openUserModal;

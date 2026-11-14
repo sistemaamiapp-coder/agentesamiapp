@@ -17,7 +17,6 @@
     whatsapp: { title: "WhatsApp", perm: "whatsapp" },
     notificacoes: { title: "Notificações", adminOnly: true },
     historico: { title: "Histórico de atividades", adminOnly: true },
-    configuracoes: { title: "Configurações", adminOnly: true, rootOnly: true },
     manuais: { title: "Manuais" },
     "vol-painel": { title: "Meu painel", volOnly: true },
     "vol-disponibilidade": { title: "Minha disponibilidade", volOnly: true },
@@ -33,7 +32,6 @@
     var meta = ROUTES[route];
     if (!meta) return false;
     if (meta.adminOnly && user.role !== "admin") return false;
-    if (meta.rootOnly && !(user.role === "admin" && user.units.indexOf("pacheco") >= 0)) return false;
     if (meta.perm && !(user.role === "admin" || (user.permissions || []).indexOf(meta.perm) >= 0)) return false;
     if (meta.volOnly && user.role === "admin") return false;
     return true;
@@ -78,7 +76,6 @@
 
   function navConfig(user) {
     var isAdmin = user.role === "admin";
-    var rootAdmin = isAdmin && user.units.indexOf("pacheco") >= 0;
     var sections = [];
     if (isAdmin) {
       sections.push({ label: "Gestão", items: [
@@ -98,7 +95,7 @@
       sections.push({ label: "Sistema", items: [
         { id: "historico", icon: "history", label: "Histórico" },
         { id: "manuais", icon: "book", label: "Manuais" }
-      ].concat(rootAdmin ? [{ id: "configuracoes", icon: "settings", label: "Configurações" }] : [])});
+      ]});
       return sections;
     }
 
@@ -146,7 +143,7 @@
         '<div class="brand"><img src="assets/fundo.jpeg" alt="Agentes do Amor AMI" />' +
           "<div><b>Agentes do Amor</b><span>AMI · Pacheco &amp; Amendoeira</span></div></div>" +
         '<nav>' + nav + "</nav>" +
-        '<div class="sidebar-foot">Versão 1.0 · ' + esc(N.MANUAL_DATE) + '<br/>Líder: Leon Dias<br/>Juntos por um servir ainda mais forte!</div>' +
+        '<div class="sidebar-foot">Versão ' + esc(N.MANUAL_VERSION) + " · " + esc(N.MANUAL_DATE) + "<br/>Líder: Leon Dias<br/>Juntos por um servir ainda mais forte!</div>" +
       "</aside>" +
       '<div class="mobile-backdrop" id="backdrop"></div>' +
       '<div class="main">' +

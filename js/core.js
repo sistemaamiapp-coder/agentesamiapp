@@ -6,8 +6,8 @@ window.AMI = window.AMI || {};
   var STORAGE_KEY = "ami_state_v1";
   var SESSION_KEY = "ami_session_v1";
   var TERM_VERSION = "1.0";
-  var MANUAL_VERSION = "1.0";
-  var MANUAL_DATE = "10/11/2026";
+  var MANUAL_VERSION = "1.1";
+  var MANUAL_DATE = "14/11/2026";
   var LGPD_LAW = "Lei nº 13.709/2018";
 
   var MONTHS = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
@@ -136,6 +136,11 @@ window.AMI = window.AMI || {};
   }
 
   function migrate(st) {
+    st.settings = st.settings || {};
+    st.settings.availabilityMonth = monthOf(todayISO());
+    if (!st.settings.sessionHours) st.settings.sessionHours = 8;
+    if (!st.settings.lgpdVersion) st.settings.lgpdVersion = TERM_VERSION;
+    if (!st.settings.manualVersion) st.settings.manualVersion = MANUAL_VERSION;
     var targetEmail = "werleyvenceslau17@gmail.com";
     var users = st.users || [];
     var main = users.filter(function (u) { return u.email === targetEmail; })[0];
@@ -193,12 +198,6 @@ window.AMI = window.AMI || {};
     }
   }
 
-  function resetState() {
-    state = seed();
-    persist();
-    return state;
-  }
-
   function S() { return state || load(); }
 
   function nextDow(dow, fromDate) {
@@ -219,11 +218,7 @@ window.AMI = window.AMI || {};
         availabilityMonth: month,
         lgpdVersion: TERM_VERSION,
         manualVersion: MANUAL_VERSION,
-        amendoeiraAccessGranted: true,
-        sessionHours: 8,
-        adminWhatsapp: "(11) 98888-1001",
-        lastBackup: null,
-        backupNote: ""
+        sessionHours: 8
       },
       units: UNITS.slice(),
       users: [],
@@ -767,13 +762,6 @@ window.AMI = window.AMI || {};
     if (u.units.indexOf(unitId) < 0) {
       return { ok: false, message: "Este e-mail não possui acesso à unidade " + unitName(unitId) + "." };
     }
-    if (unitId === "amendoeira" && u.role === "admin" && u.units.length === 1 &&
-        u.units[0] === "amendoeira" && !S().settings.amendoeiraAccessGranted) {
-      return {
-        ok: false, blocked: true,
-        message: "O acesso administrativo da unidade Amendoeira aguarda liberação do administrador da unidade Pacheco."
-      };
-    }
     if (consent === "recusado") {
       recordConsent(u.id, "recusado");
       return { ok: false, blocked: true, message: "Acesso bloqueado: o consentimento LGPD é obrigatório para utilizar o sistema. Você poderá solicitar a liberação ao administrador." };
@@ -1067,21 +1055,6 @@ window.AMI = window.AMI || {};
     persist();
   }
 
-  /* ------------------------------ backup ------------------------------ */
-  function exportBackup() {
-    var payload = { app: "Agentes do Amor AMI", version: 1, exportedAt: new Date().toISOString(), state: S() };
-    return JSON.stringify(payload, null, 2);
-  }
-  function importBackup(text) {
-    var parsed;
-    try { parsed = JSON.parse(text); } catch (e) { return { ok: false, message: "Arquivo inválido." }; }
-    var st = parsed && parsed.state ? parsed.state : parsed;
-    if (!st || !st.users || !st.events) return { ok: false, message: "Backup não reconhecido." };
-    state = st;
-    persist();
-    return { ok: true };
-  }
-
   /* ------------------------------ exposto ------------------------------ */
   N.STORAGE_KEY = STORAGE_KEY;
   N.TERM_VERSION = TERM_VERSION;
@@ -1105,7 +1078,6 @@ window.AMI = window.AMI || {};
   N.state = S;
   N.persist = persist;
   N.load = load;
-  N.resetState = resetState;
   N.seed = seed;
 
   N.userById = userById;
@@ -1159,8 +1131,6 @@ window.AMI = window.AMI || {};
   N.templateBody = templateBody;
   N.registerMessages = registerMessages;
 
-  N.exportBackup = exportBackup;
-  N.importBackup = importBackup;
 
   load();
 })(window.AMI);

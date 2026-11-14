@@ -378,7 +378,7 @@
                   var on = !!waState.selected[u.id];
                   return '<label class="check" style="padding:6px 4px"><input type="checkbox" data-recipient="' + esc(u.id) + '"' + (on ? " checked" : "") + " /> <span>" + esc(u.name) + " <span class=\"muted\">· " + esc(u.phone) + "</span></span></label>";
                 }).join("") + "</div>" : "") +
-              '<div class="alert warn" style="margin-top:12px">' + N.icon("alert") + "<div>As mensagens de uma escala são preparadas em <b>uma única operação</b> para todos os selecionados. Links wa.me abrem conversas individuais; para envio automático e coletivo é necessária a API oficial do WhatsApp Business ou provedor compatível.</div></div>" +
+              '<div class="alert warn" style="margin-top:12px">' + N.icon("alert") + "<div>As mensagens de uma escala são preparadas em <b>uma única operação</b> para todos os selecionados. O envio é feito exclusivamente por links <b>wa.me</b>, que abrem a conversa individual de cada pessoa no WhatsApp.</div></div>" +
             "</div>" +
             '<div class="card"><div class="card-title"><h3>Pré-visualização</h3><span class="hint">' + recipients.length + " destinatário(s)</span></div>" +
               '<pre class="mono" style="white-space:pre-wrap;font-size:11.5px;color:#c9ccd1;margin:0">' + esc(preview) + "</pre>" +
