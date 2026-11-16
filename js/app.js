@@ -201,6 +201,14 @@
       N.auth.loginScreen();
       return;
     }
+    try {
+      var qs = new URLSearchParams(location.search);
+      if (qs.get("usuario")) {
+        if (qs.get("escala") && qs.get("usuario") === user.id && user.role !== "admin") ui.route = "vol-escalas";
+        history.replaceState(null, "", location.pathname);
+      }
+    } catch (e) { /* sem suporte a query string */ }
+
     var route = ui.route || defaultRoute(user);
     if (!ROUTES[route] || !canAccess(user, route)) route = defaultRoute(user);
     ui.route = route;

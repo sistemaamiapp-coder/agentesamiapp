@@ -351,7 +351,8 @@
       var scopeUnit = waState.mode === "escala" ? (ev ? ev.unit : waState.unit) : waState.unit;
       var preview = recipients[0] ? N.templateBody(waState.template, {
         name: recipients[0].name.split(" ")[0], event: scopeEvent, unit: N.unitName(scopeUnit),
-        role: recipients[0].role || "—", motivo: waState.motivo || "—"
+        team: recipients[0].team || "—", role: recipients[0].func || recipients[0].role || "—",
+        link: confirmLink(recipients[0].id), motivo: waState.motivo || "—"
       }) : "Selecione os destinatários para visualizar a mensagem.";
 
       var body =
@@ -388,7 +389,7 @@
           '<div class="card"><div class="card-title"><h3>Destinatários selecionados</h3></div>' +
             (recipients.length ? recipients.map(function (r) {
               return '<div class="list-item">' + N.avatar(r.name) + '<div class="li-body"><div class="li-title">' + esc(r.name) + '</div><div class="li-sub">' + esc(r.phone) + (r.role ? " · " + esc(r.role) : "") + "</div></div>" +
-                '<a class="btn btn-icon btn-ghost" href="' + esc(N.waLink(r.phone, N.templateBody(waState.template, { name: r.name.split(" ")[0], event: scopeEvent, unit: N.unitName(scopeUnit), role: r.role, motivo: waState.motivo || "—" }))) + '" target="_blank" rel="noopener" title="Abrir conversa">' + N.icon("external") + "</a></div>";
+                '<a class="btn btn-icon btn-ghost" href="' + esc(N.waLink(r.phone, N.templateBody(waState.template, { name: r.name.split(" ")[0], event: scopeEvent, unit: N.unitName(scopeUnit), team: r.team || "—", role: r.func || r.role, link: confirmLink(r.id), motivo: waState.motivo || "—" }))) + '" target="_blank" rel="noopener" title="Abrir conversa">' + N.icon("external") + "</a></div>";
             }).join("") : N.empty("Nenhum destinatário", "Ajuste o modo de envio ou selecione pessoas.", "whatsapp")) +
           "</div>" +
         "</div>" +
@@ -439,7 +440,7 @@
         var links = recipients.map(function (r) {
           var text = N.templateBody(waState.template, {
             name: r.name.split(" ")[0], event: scopeEvent, unit: N.unitName(scopeUnit),
-            role: r.role || "—", motivo: waState.motivo || "—"
+            team: r.team || "—", role: r.func || r.role || "—", link: confirmLink(r.id), motivo: waState.motivo || "—"
           });
           return { name: r.name, phone: r.phone, text: text, link: N.waLink(r.phone, text) };
         });
@@ -471,6 +472,11 @@
     return N.options(N.scopeUnits().map(function (u) { return { value: u, label: N.unitName(u) }; }), waState.unit);
   }
 
+  var SITE_URL = "https://sistemaamiapp-coder.github.io/agentesamiapp/";
+  function confirmLink(userId) {
+    return SITE_URL + "?escala=1&usuario=" + encodeURIComponent(userId);
+  }
+
   function getRecipients() {
     var out = [];
     var seen = {};
@@ -484,7 +490,9 @@
         var u = N.userById(a.userId);
         if (!u) return;
         seen[a.userId] = true;
-        out.push({ id: u.id, name: u.name, phone: u.phone, role: N.roleName(a.teamId, a.roleId), status: a.status });
+        var team = N.teamById(a.teamId);
+        var roleObj = N.roleOf(a.teamId, a.roleId);
+        out.push({ id: u.id, name: u.name, phone: u.phone, role: N.roleName(a.teamId, a.roleId), team: team ? team.name : "—", func: roleObj ? roleObj.name : "—", status: a.status });
       });
       return out;
     }

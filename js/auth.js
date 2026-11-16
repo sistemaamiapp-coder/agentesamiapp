@@ -51,7 +51,7 @@
           '<button type="button" class="btn btn-primary ' + (authState.consent === "aceito" ? "" : "btn-ghost") + '" data-consent="aceito">Concordo e autorizo</button>' +
           '<button type="button" class="btn btn-refuse ' + (authState.consent === "recusado" ? "active" : "") + '" data-consent="recusado"' + (authState.consent === "recusado" ? ' style="border-color:rgba(224,16,42,.55);color:#ffc2ca"' : "") + ">Não concordo e não autorizo</button>" +
         "</div>" +
-        '<p class="tiny" style="margin:12px 0 0;letter-spacing:0;text-transform:none;color:#6f757d">A autorização é obrigatória e fica registrada com data, hora e versão do termo. A recusa não exclui o cadastro: o acesso permanece bloqueado até a regularização.</p>' +
+        '<p class="tiny" style="margin:12px 0 0;letter-spacing:0;text-transform:none;color:#6f757d">A autorização é obrigatória, fica registrada uma única vez com data, hora e versão do termo e não precisa ser marcada novamente nos próximos acessos. A recusa não exclui o cadastro: o acesso permanece bloqueado até a regularização.</p>' +
       "</div>";
 
     document.getElementById("app").innerHTML = shell(inner);
@@ -85,8 +85,10 @@
       var email = form.email.value.trim();
       authState.email = email;
       if (!email) { showError("Informe o seu e-mail de acesso."); return; }
-      if (!authState.consent) { showError("Escolha uma das opções de consentimento LGPD no final desta página para continuar."); return; }
-      var res = N.login(email, authState.unit, authState.consent);
+      var existing = N.state().users.find(function (x) { return x.email.toLowerCase() === email.toLowerCase(); });
+      var alreadyAccepted = existing && existing.lgpd && existing.lgpd.status === "aceito";
+      if (!authState.consent && !alreadyAccepted) { showError("Escolha uma das opções de consentimento LGPD no final desta página para continuar."); return; }
+      var res = N.login(email, authState.unit, authState.consent || "aceito");
       if (!res.ok) {
         if (res.blocked) { authState.blocked = { email: email }; renderBlocked(res.message); return; }
         showError(res.message);

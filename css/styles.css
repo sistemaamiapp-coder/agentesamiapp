@@ -39,6 +39,14 @@ html, body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* ---------- Barra de rolagem ---------- */
+html { scrollbar-color: #4a1219 #0a0b0d; scrollbar-width: thin; }
+::-webkit-scrollbar { width: 11px; height: 11px; }
+::-webkit-scrollbar-track { background: #0a0b0d; }
+::-webkit-scrollbar-thumb { background: #3a1218; border-radius: 8px; border: 2px solid #0a0b0d; }
+::-webkit-scrollbar-thumb:hover { background: var(--red); }
+::-webkit-scrollbar-corner { background: #0a0b0d; }
+
 body {
   background:
     radial-gradient(1200px 700px at 85% -10%, rgba(224, 16, 42, 0.16), transparent 60%),
@@ -178,8 +186,6 @@ p { line-height: 1.6; }
   flex-direction: column;
   justify-content: center;
   padding: 44px clamp(22px, 4vw, 64px);
-  max-height: 100vh;
-  overflow-y: auto;
 }
 .auth-card {
   width: 100%;

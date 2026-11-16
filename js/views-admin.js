@@ -301,7 +301,7 @@
         '<div class="field full"><label>Unidade ou unidades <span class="req">*</span></label><div class="chip-set" id="u-units">' +
           editableUnits().map(function (un) {
             return '<label class="chip ' + (user.units.indexOf(un) >= 0 ? "on" : "") + '"><input type="checkbox" value="' + un + '"' + (user.units.indexOf(un) >= 0 ? " checked" : "") + " />" + esc(N.unitName(un)) + "</label>";
-          }).join("") + "</div></div>" +
+          }).join("") + '<span class="help">Marque uma unidade específica ou as duas unidades.</span></div></div>' +
         '<div class="field full"><label>Equipes</label><div class="chip-set" id="u-teams">' +
           editableTeams().map(function (t) {
             return '<label class="chip ' + (user.teamIds.indexOf(t.id) >= 0 ? "on" : "") + '"><input type="checkbox" value="' + esc(t.id) + '"' + (user.teamIds.indexOf(t.id) >= 0 ? " checked" : "") + " />" + esc(t.name) + " · " + esc(N.unitName(t.unit, true)) + "</label>";
