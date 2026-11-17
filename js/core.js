@@ -6,7 +6,7 @@ window.AMI = window.AMI || {};
   var STORAGE_KEY = "ami_state_v1";
   var SESSION_KEY = "ami_session_v1";
   var TERM_VERSION = "1.0";
-  var MANUAL_VERSION = "1.4";
+  var MANUAL_VERSION = "1.5";
   var MANUAL_DATE = "17/11/2026";
   var LGPD_LAW = "Lei nº 13.709/2018";
 

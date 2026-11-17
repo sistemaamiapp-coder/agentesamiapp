@@ -379,7 +379,7 @@
                   var on = !!waState.selected[u.id];
                   return '<label class="check" style="padding:6px 4px"><input type="checkbox" data-recipient="' + esc(u.id) + '"' + (on ? " checked" : "") + " /> <span>" + esc(u.name) + " <span class=\"muted\">· " + esc(u.phone) + "</span></span></label>";
                 }).join("") + "</div>" : "") +
-              '<div class="alert warn" style="margin-top:12px">' + N.icon("alert") + "<div>As mensagens são preparadas em <b>uma única operação</b> para todos os selecionados, com a mesma saudação para todos e o link individual de confirmação. Cada pessoa tem três caminhos: <b>aplicativo</b> (wa.me), <b>WhatsApp Web</b> (abre no navegador com o texto já preenchido) e <b>copiar a mensagem</b>. Use <b>Enviar a todos de uma vez</b> para abrir todas as conversas no WhatsApp Web; na primeira vez, permita pop-ups para este site.</div></div>" +
+              '<div class="alert warn" style="margin-top:12px">' + N.icon("alert") + "<div>As mensagens são preparadas em <b>uma única operação</b> para todos os selecionados, com a mesma saudação para todos e o link individual de confirmação. Cada pessoa tem três caminhos: <b>aplicativo</b> (wa.me), <b>WhatsApp Web</b> (abre no navegador com o texto já preenchido) e <b>copiar a mensagem</b>. Use <b>Enviar a todos de uma vez</b>: se o navegador bloquear as abas, a <b>fila de envio</b> abre as conversas uma a uma para você enviar.</div></div>" +
             "</div>" +
             '<div class="card"><div class="card-title"><h3>Pré-visualização</h3><span class="hint">' + recipients.length + " destinatário(s)</span></div>" +
               '<pre class="mono" style="white-space:pre-wrap;font-size:11.5px;color:#c9ccd1;margin:0">' + esc(preview) + "</pre>" +
@@ -458,7 +458,11 @@
           onMount: function (wrap) {
             bindCopyButtons(wrap);
             wrap.querySelector("#open-all").addEventListener("click", function () {
-              openAllWeb(links);
+              var res = openAllWeb(links);
+              if (res.blocked) {
+                N.closeModal();
+                openSendQueue(links, res.flags);
+              }
             });
           }
         });
@@ -468,7 +472,8 @@
         if (!recipients) return;
         var links = buildWaLinks(recipients);
         N.registerMessages(waState.template, recipients, waScopeUnit());
-        openAllWeb(links);
+        var res = openAllWeb(links);
+        if (res.blocked) openSendQueue(links, res.flags);
       });
     }
   };
@@ -503,24 +508,87 @@
   }
 
   function openAllWeb(links) {
-    var opened = 0;
-    var blocked = 0;
+    var flags = [];
     links.forEach(function (l) {
       var win = window.open(l.web, "_blank");
       if (win) {
         try { win.opener = null; } catch (e) { /* janela já isolada */ }
-        opened++;
+        flags.push(true);
       } else {
-        blocked++;
+        flags.push(false);
       }
     });
+    var opened = flags.filter(function (ok) { return ok; }).length;
+    var blocked = flags.length - opened;
     if (!opened) {
-      N.toast("O navegador bloqueou as janelas. Libere pop-ups para este site e use Preparar e revisar.", "warn");
+      N.toast("O navegador bloqueou as janelas. Permita pop-ups para este site ou use a fila de envio.", "warn");
     } else if (blocked) {
-      N.toast("Abrindo " + opened + " conversa(s); " + blocked + " foram bloqueadas. Libere pop-ups e tente novamente.", "warn");
+      N.toast("Abrindo " + opened + " conversa(s); " + blocked + " foram bloqueadas. Use a fila de envio para abrir as restantes.", "warn");
     } else {
       N.toast("Abrindo " + opened + " conversa(s) no WhatsApp Web. Revise e toque em Enviar em cada uma.", "ok");
     }
+    return { opened: opened, blocked: blocked, flags: flags };
+  }
+
+  function openSendQueue(links, flags) {
+    var state = flags ? flags.slice() : links.map(function () { return false; });
+    function pending() {
+      return state.filter(function (ok) { return !ok; }).length;
+    }
+    N.modal({
+      title: "Fila de envio",
+      subtitle: links.length + " conversa(s) prontas",
+      wide: true,
+      body: '<div class="alert warn" style="margin-bottom:12px">' + N.icon("alert") + "<div>O navegador abriu apenas uma parte das abas. Abra as demais <b>uma por vez</b> pelos botões abaixo, envie a mensagem no WhatsApp e volte para abrir a próxima. Para abrir todas de uma só vez, permita pop-ups para este site e use <b>Tentar abrir todas em abas</b>.</div></div>" +
+        '<div class="small muted" id="q-progress" style="margin-bottom:8px"></div>' +
+        links.map(function (l, i) {
+          return '<div class="list-item">' + N.avatar(l.name) + '<div class="li-body"><div class="li-title">' + esc(l.name) + '</div><div class="li-sub">' + esc(l.phone) + "</div></div>" +
+            '<div class="row" style="gap:6px;flex-wrap:wrap;justify-content:flex-end">' +
+              '<span class="badge ' + (state[i] ? "green" : "amber") + '" data-qstatus="' + i + '">' + (state[i] ? "Aberta" : "Pendente") + "</span>" +
+              '<button class="btn btn-primary btn-sm" type="button" data-qopen="' + i + '">Abrir conversa</button>' +
+              '<button class="btn btn-ghost btn-sm" type="button" data-copy="' + esc(l.text) + '">' + N.icon("copy") + " Copiar</button>" +
+            "</div></div>";
+        }).join(""),
+      footer: '<button class="btn btn-ghost" data-close>Fechar</button>' +
+        '<button class="btn btn-ghost" type="button" id="q-all">Tentar abrir todas em abas</button>' +
+        '<button class="btn btn-primary" type="button" id="q-next">Abrir próxima</button>',
+      onMount: function (wrap) {
+        bindCopyButtons(wrap);
+        var progress = wrap.querySelector("#q-progress");
+        var nextBtn = wrap.querySelector("#q-next");
+        function update() {
+          var left = pending();
+          progress.textContent = left ? left + " conversa(s) pendente(s)" : "Todas as conversas foram abertas.";
+          nextBtn.disabled = left === 0;
+          nextBtn.textContent = left ? "Abrir próxima (" + left + ")" : "Todas abertas";
+        }
+        function mark(i) {
+          state[i] = true;
+          var tag = wrap.querySelector('[data-qstatus="' + i + '"]');
+          if (tag) { tag.textContent = "Aberta"; tag.className = "badge green"; }
+          update();
+        }
+        function openOne(i) {
+          var win = window.open(links[i].web, "_blank");
+          if (!win) { N.toast("O navegador bloqueou a janela. Permita pop-ups para este site.", "warn"); return; }
+          try { win.opener = null; } catch (e) { /* janela já isolada */ }
+          mark(i);
+        }
+        Array.prototype.forEach.call(wrap.querySelectorAll("[data-qopen]"), function (b) {
+          b.addEventListener("click", function () { openOne(+b.getAttribute("data-qopen")); });
+        });
+        nextBtn.addEventListener("click", function () {
+          var i = state.indexOf(false);
+          if (i < 0) { N.toast("Todas as conversas já foram abertas.", "ok"); return; }
+          openOne(i);
+        });
+        wrap.querySelector("#q-all").addEventListener("click", function () {
+          var res = openAllWeb(links);
+          res.flags.forEach(function (ok, i) { if (ok) mark(i); });
+        });
+        update();
+      }
+    });
   }
 
   function unitSelect() {
