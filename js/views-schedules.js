@@ -350,7 +350,7 @@
       var scopeEvent = waState.mode === "escala" ? ev : null;
       var scopeUnit = waState.mode === "escala" ? (ev ? ev.unit : waState.unit) : waState.unit;
       var preview = recipients[0] ? N.templateBody(waState.template, {
-        name: recipients[0].name.split(" ")[0], event: scopeEvent, unit: N.unitName(scopeUnit),
+        name: "irmão (ã)", event: scopeEvent, unit: N.unitName(scopeUnit),
         team: recipients[0].team || "—", role: recipients[0].func || recipients[0].role || "—",
         link: confirmLink(recipients[0].id), motivo: waState.motivo || "—"
       }) : "Selecione os destinatários para visualizar a mensagem.";
@@ -379,19 +379,19 @@
                   var on = !!waState.selected[u.id];
                   return '<label class="check" style="padding:6px 4px"><input type="checkbox" data-recipient="' + esc(u.id) + '"' + (on ? " checked" : "") + " /> <span>" + esc(u.name) + " <span class=\"muted\">· " + esc(u.phone) + "</span></span></label>";
                 }).join("") + "</div>" : "") +
-              '<div class="alert warn" style="margin-top:12px">' + N.icon("alert") + "<div>As mensagens de uma escala são preparadas em <b>uma única operação</b> para todos os selecionados, com link individual de confirmação. Cada pessoa tem três caminhos: <b>aplicativo</b> (wa.me), <b>WhatsApp Web</b> (abre no navegador com o texto já preenchido) e <b>copiar a mensagem</b>. Para grupos e listas de transmissão, use <b>Enviar para um grupo</b>.</div></div>" +
+              '<div class="alert warn" style="margin-top:12px">' + N.icon("alert") + "<div>As mensagens são preparadas em <b>uma única operação</b> para todos os selecionados, com a mesma saudação para todos e o link individual de confirmação. Cada pessoa tem três caminhos: <b>aplicativo</b> (wa.me), <b>WhatsApp Web</b> (abre no navegador com o texto já preenchido) e <b>copiar a mensagem</b>. Use <b>Enviar a todos de uma vez</b> para abrir todas as conversas no WhatsApp Web.</div></div>" +
             "</div>" +
             '<div class="card"><div class="card-title"><h3>Pré-visualização</h3><span class="hint">' + recipients.length + " destinatário(s)</span></div>" +
               '<pre class="mono" style="white-space:pre-wrap;font-size:11.5px;color:#c9ccd1;margin:0">' + esc(preview) + "</pre>" +
-              '<div class="btn-group" style="margin-top:14px">' +
-                '<button class="btn btn-primary" id="w-prepare">' + N.icon("whatsapp") + " Preparar e enviar (" + recipients.length + ")</button>" +
-                '<button class="btn btn-ghost" type="button" id="w-group">' + N.icon("whatsapp") + " Enviar para um grupo</button>" +
+              '<div class="btn-group" style="margin-top:14px;flex-wrap:wrap">' +
+                '<button class="btn btn-primary" id="w-send-all">' + N.icon("whatsapp") + " Enviar a todos de uma vez (" + recipients.length + ")</button>" +
+                '<button class="btn btn-ghost" id="w-prepare">Preparar e revisar</button>' +
               "</div>" +
             "</div>" +
           "</div>" +
           '<div class="card"><div class="card-title"><h3>Destinatários selecionados</h3></div>' +
             (recipients.length ? recipients.map(function (r) {
-              var msg = N.templateBody(waState.template, { name: r.name.split(" ")[0], event: scopeEvent, unit: N.unitName(scopeUnit), team: r.team || "—", role: r.func || r.role, link: confirmLink(r.id), motivo: waState.motivo || "—" });
+              var msg = N.templateBody(waState.template, { name: "irmão (ã)", event: scopeEvent, unit: N.unitName(scopeUnit), team: r.team || "—", role: r.func || r.role, link: confirmLink(r.id), motivo: waState.motivo || "—" });
               return '<div class="list-item">' + N.avatar(r.name) + '<div class="li-body"><div class="li-title">' + esc(r.name) + '</div><div class="li-sub">' + esc(r.phone) + (r.role ? " · " + esc(r.role) : "") + "</div></div>" +
                 '<div class="row" style="gap:4px">' +
                   '<a class="btn btn-icon btn-ghost" href="' + esc(N.waLink(r.phone, msg)) + '" target="_blank" rel="noopener" title="Abrir no aplicativo">' + N.icon("whatsapp") + "</a>" +
@@ -435,27 +435,11 @@
         });
       });
       bindCopyButtons(document);
-      var groupBtn = document.getElementById("w-group");
-      if (groupBtn) groupBtn.addEventListener("click", openGroupShare);
       document.getElementById("w-prepare").addEventListener("click", function () {
-        var recipients = getRecipients();
-        if (!recipients.length) { N.toast("Selecione ao menos um destinatário.", "warn"); return; }
-        if (!recipients.every(function (r) { return U.digits(r.phone).length >= 10; })) { N.toast("Há destinatários sem telefone válido.", "warn"); return; }
-        if ((waState.template === "comunicado" || waState.template === "troca_solicitada") && !waState.motivo.trim()) {
-          N.toast(waState.template === "comunicado" ? "Escreva o texto do comunicado." : "Descreva o motivo da troca.", "warn");
-          return;
-        }
-        var ev = N.eventById(waState.eventId);
-        var scopeEvent = waState.mode === "escala" ? ev : null;
-        var scopeUnit = waState.mode === "escala" ? (ev ? ev.unit : waState.unit) : waState.unit;
-        var links = recipients.map(function (r) {
-          var text = N.templateBody(waState.template, {
-            name: r.name.split(" ")[0], event: scopeEvent, unit: N.unitName(scopeUnit),
-            team: r.team || "—", role: r.func || r.role || "—", link: confirmLink(r.id), motivo: waState.motivo || "—"
-          });
-          return { name: r.name, phone: r.phone, text: text, link: N.waLink(r.phone, text), web: waWebLink(r.phone, text) };
-        });
-        N.registerMessages(waState.template, recipients, scopeUnit);
+        var recipients = collectWaRecipients();
+        if (!recipients) return;
+        var links = buildWaLinks(recipients);
+        N.registerMessages(waState.template, recipients, waScopeUnit());
         N.modal({
           title: "Mensagens prontas",
           subtitle: links.length + " conversa(s) preparada(s) em uma única operação",
@@ -470,25 +454,74 @@
               "</div></div>";
             }).join(""),
           footer: '<button class="btn btn-ghost" data-close>Fechar</button>' +
-            '<button class="btn btn-ghost" type="button" id="group-share">Enviar o mesmo texto a um grupo</button>' +
-            '<button class="btn btn-primary" id="open-all">Abrir todas as conversas</button>',
+            '<button class="btn btn-primary" id="open-all">Abrir todas no WhatsApp Web</button>',
           onMount: function (wrap) {
             bindCopyButtons(wrap);
-            wrap.querySelector("#group-share").addEventListener("click", function () {
-              N.closeModal();
-              openGroupShare();
-            });
             wrap.querySelector("#open-all").addEventListener("click", function () {
-              links.forEach(function (l, i) {
-                setTimeout(function () { window.open(l.link, "_blank", "noopener"); }, i * 350);
-              });
-              N.toast("Abrindo " + links.length + " conversa(s). Verifique o bloqueio de pop-ups.", "warn");
+              openAllWeb(links);
             });
           }
         });
       });
+      document.getElementById("w-send-all").addEventListener("click", function () {
+        var recipients = collectWaRecipients();
+        if (!recipients) return;
+        var links = buildWaLinks(recipients);
+        N.registerMessages(waState.template, recipients, waScopeUnit());
+        openAllWeb(links);
+      });
     }
   };
+
+  function waScopeUnit() {
+    var ev = N.eventById(waState.eventId);
+    return waState.mode === "escala" ? (ev ? ev.unit : waState.unit) : waState.unit;
+  }
+
+  function collectWaRecipients() {
+    var recipients = getRecipients();
+    if (!recipients.length) { N.toast("Selecione ao menos um destinatário.", "warn"); return null; }
+    if (!recipients.every(function (r) { return U.digits(r.phone).length >= 10; })) { N.toast("Há destinatários sem telefone válido.", "warn"); return null; }
+    if ((waState.template === "comunicado" || waState.template === "troca_solicitada") && !waState.motivo.trim()) {
+      N.toast(waState.template === "comunicado" ? "Escreva o texto do comunicado." : "Descreva o motivo da troca.", "warn");
+      return null;
+    }
+    return recipients;
+  }
+
+  function buildWaLinks(recipients) {
+    var ev = N.eventById(waState.eventId);
+    var scopeEvent = waState.mode === "escala" ? ev : null;
+    var scopeUnit = waScopeUnit();
+    return recipients.map(function (r) {
+      var text = N.templateBody(waState.template, {
+        name: "irmão (ã)", event: scopeEvent, unit: N.unitName(scopeUnit),
+        team: r.team || "—", role: r.func || r.role || "—", link: confirmLink(r.id), motivo: waState.motivo || "—"
+      });
+      return { name: r.name, phone: r.phone, text: text, link: N.waLink(r.phone, text), web: waWebLink(r.phone, text) };
+    });
+  }
+
+  function openAllWeb(links) {
+    var opened = 0;
+    var blocked = 0;
+    links.forEach(function (l) {
+      var win = window.open(l.web, "_blank");
+      if (win) {
+        try { win.opener = null; } catch (e) { /* janela já isolada */ }
+        opened++;
+      } else {
+        blocked++;
+      }
+    });
+    if (!opened) {
+      N.toast("O navegador bloqueou as janelas. Libere pop-ups para este site e use Preparar e revisar.", "warn");
+    } else if (blocked) {
+      N.toast("Abrindo " + opened + " conversa(s); " + blocked + " foram bloqueadas. Libere pop-ups e tente novamente.", "warn");
+    } else {
+      N.toast("Abrindo " + opened + " conversa(s) no WhatsApp Web. Revise e toque em Enviar em cada uma.", "ok");
+    }
+  }
 
   function unitSelect() {
     return N.options(N.scopeUnits().map(function (u) { return { value: u, label: N.unitName(u) }; }), waState.unit);
@@ -500,21 +533,6 @@
   }
   function waWebLink(phone, text) {
     return "https://web.whatsapp.com/send?phone=" + N.normalizePhone(phone) + "&text=" + encodeURIComponent(text) + "&type=phone_number&app_absent=0";
-  }
-  function groupWebLink(text) {
-    return "https://web.whatsapp.com/send/?text=" + encodeURIComponent(text) + "&type=custom_url&app_absent=0";
-  }
-  function groupAppLink(text) {
-    return "https://wa.me/?text=" + encodeURIComponent(text);
-  }
-  function currentGroupText() {
-    var ev = N.eventById(waState.eventId);
-    var scopeEvent = waState.mode === "escala" ? ev : null;
-    var scopeUnit = waState.mode === "escala" ? (ev ? ev.unit : waState.unit) : waState.unit;
-    return N.templateBody(waState.template, {
-      name: "pessoal", event: scopeEvent, unit: N.unitName(scopeUnit),
-      team: "—", role: "—", link: SITE_URL, motivo: waState.motivo || "—"
-    });
   }
   function bindCopyButtons(container) {
     Array.prototype.forEach.call(container.querySelectorAll("[data-copy]"), function (b) {
@@ -538,36 +556,6 @@
       });
     });
   }
-  function openGroupShare() {
-    var text = currentGroupText();
-    N.modal({
-      title: "Enviar para um grupo",
-      subtitle: "Escolha o grupo ou a lista de transmissão",
-      wide: true,
-      body: '<div class="alert info" style="margin-bottom:12px">' + N.icon("info") + "<div><b>WhatsApp Web:</b> o seletor de conversas abre no navegador e permite escolher o grupo ou a lista de transmissão. <b>Aplicativo do computador:</b> em conversas novas o texto pode não aparecer — nesse caso use <b>Copiar mensagem</b>, abra o grupo e cole.</div></div>" +
-        '<div class="field"><label>Mensagem que será enviada</label><textarea class="textarea" id="g-text" rows="9">' + esc(text) + "</textarea>" +
-        '<span class="help">Você pode ajustar o texto antes de copiar ou abrir o WhatsApp.</span></div>' +
-        '<div class="btn-group" style="flex-wrap:wrap;margin-top:14px">' +
-          '<a class="btn btn-primary" id="g-web" href="' + esc(groupWebLink(text)) + '" target="_blank" rel="noopener">' + N.icon("whatsapp") + " Abrir seletor no WhatsApp Web</a>" +
-          '<button class="btn btn-ghost" type="button" id="g-copy">' + N.icon("copy") + " Copiar mensagem</button>" +
-          '<a class="btn btn-ghost" id="g-app" href="' + esc(groupAppLink(text)) + '" target="_blank" rel="noopener">' + N.icon("external") + " Abrir no aplicativo</a>" +
-        "</div>",
-      footer: '<button class="btn btn-ghost" data-close>Fechar</button>',
-      onMount: function (wrap) {
-        var ta = wrap.querySelector("#g-text");
-        ta.addEventListener("input", function () {
-          wrap.querySelector("#g-web").setAttribute("href", groupWebLink(ta.value));
-          wrap.querySelector("#g-app").setAttribute("href", groupAppLink(ta.value));
-        });
-        wrap.querySelector("#g-copy").addEventListener("click", function () {
-          N.copyText(ta.value).then(function (ok) {
-            N.toast(ok ? "Mensagem copiada. Abra o grupo no WhatsApp e cole." : "Não foi possível copiar. Selecione o texto e copie manualmente.", ok ? "ok" : "warn");
-          });
-        });
-      }
-    });
-  }
-
   function getRecipients() {
     var out = [];
     var seen = {};

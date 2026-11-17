@@ -6,7 +6,7 @@ window.AMI = window.AMI || {};
   var STORAGE_KEY = "ami_state_v1";
   var SESSION_KEY = "ami_session_v1";
   var TERM_VERSION = "1.0";
-  var MANUAL_VERSION = "1.3";
+  var MANUAL_VERSION = "1.4";
   var MANUAL_DATE = "17/11/2026";
   var LGPD_LAW = "Lei nº 13.709/2018";
 
@@ -1072,13 +1072,13 @@ window.AMI = window.AMI || {};
     var d = data || {};
     var when = d.event ? (d.event.name + " — " + fmtDateLong(d.event.date) + " às " + d.event.time) : "";
     var map = {
-      convocacao: "Olá, {nome}! Paz do Senhor 🙏\n\nVocê foi escalado(a) para *{evento}* em {data} às {hora}.\nEquipe: {equipe}\nFunção: {funcao}\n\nConfirme ou recuse sua presença aqui:\n{link}\n\nJuntos por um servir ainda mais forte!",
-      confirmacao: "Olá, {nome}! Sua presença foi confirmada para " + when + " na " + (d.unit || "") + ".\nFunção: {funcao}.\n\nObrigado por servir com compromisso. Deus te abençoe!",
-      lembrete: "Olá, {nome}! Lembrete: amanhã você serve no " + when + " na " + (d.unit || "") + ".\nFunção: {funcao}.\n\nChegue com 30 minutos de antecedência. Conte com você!",
-      troca_solicitada: "Olá, {nome}! Foi registrada uma solicitação de troca para " + when + ".\nMotivo: {motivo}.\n\nA troca depende da aprovação do administrador.",
-      troca_aprovada: "Olá, {nome}! A troca para " + when + " foi APROVADA pelo administrador.\nNova função: {funcao}.\n\nVerifique sua escala no sistema.",
-      troca_rejeitada: "Olá, {nome}! A solicitação de troca para " + when + " foi analisada e NÃO aprovada.\nSua escala permanece a mesma.\n\nEm caso de dúvida, fale com o dirigente.",
-      comunicado: "Olá, {nome}! Comunicado da " + (d.unit || "AMI") + ":\n\n{motivo}\n\nAgentes do Amor AMI — juntos por um servir ainda mais forte!"
+      convocacao: "Olá {nome}! Paz do Senhor 🙏\n\nVocê foi escalado(a) para *{evento}* em {data} às {hora}.\nEquipe: {equipe}\nFunção: {funcao}\n\nConfirme ou recuse sua presença aqui:\n{link}\n\nJuntos por um servir ainda mais forte!",
+      confirmacao: "Olá {nome}! Sua presença foi confirmada para " + when + " na " + (d.unit || "") + ".\nFunção: {funcao}.\n\nObrigado por servir com compromisso. Deus te abençoe!",
+      lembrete: "Olá {nome}! Lembrete: amanhã você serve no " + when + " na " + (d.unit || "") + ".\nFunção: {funcao}.\n\nChegue com 30 minutos de antecedência. Conte com você!",
+      troca_solicitada: "Olá {nome}! Foi registrada uma solicitação de troca para " + when + ".\nMotivo: {motivo}.\n\nA troca depende da aprovação do administrador.",
+      troca_aprovada: "Olá {nome}! A troca para " + when + " foi APROVADA pelo administrador.\nNova função: {funcao}.\n\nVerifique sua escala no sistema.",
+      troca_rejeitada: "Olá {nome}! A solicitação de troca para " + when + " foi analisada e NÃO aprovada.\nSua escala permanece a mesma.\n\nEm caso de dúvida, fale com o dirigente.",
+      comunicado: "Olá {nome}! Comunicado da " + (d.unit || "AMI") + ":\n\n{motivo}\n\nAgentes do Amor AMI — juntos por um servir ainda mais forte!"
     };
     var body = map[templateId] || map.comunicado;
     return body
