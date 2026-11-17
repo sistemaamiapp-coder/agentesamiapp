@@ -204,6 +204,18 @@
       (sub ? '<div class="tiny" style="text-transform:none;letter-spacing:0;margin-top:2px">' + esc(sub) + "</div>" : "") + "</div></div>";
   }
 
+  function download(filename, content, mime) {
+    var blob = new Blob([content], { type: mime || "application/json;charset=utf-8" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1500);
+  }
+
   N.esc = esc;
   N.icon = icon;
   N.avatar = avatar;
@@ -221,4 +233,5 @@
   N.options = options;
   N.formValues = formValues;
   N.initialsAvatarRow = initialsAvatarRow;
+  N.download = download;
 })(window.AMI);

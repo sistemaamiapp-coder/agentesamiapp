@@ -1,4 +1,4 @@
-/* Área administrativa: usuários, equipes, eventos, disponibilidades, trocas e histórico */
+/* Área administrativa: usuários e voluntários, equipes, eventos, disponibilidades, trocas e histórico */
 (function (N) {
   "use strict";
   var U = N.util;
@@ -7,7 +7,6 @@
   var uiState = {
     usersTab: "todos",
     usersQuery: "",
-    volunteerQuery: "",
     availMonth: null,
     historyQuery: "",
     notifFilter: "todas"
@@ -95,6 +94,10 @@
       var notifs = scopedNotifications();
       var unread = notifs.filter(function (n) { return (n.readBy || []).indexOf(N.currentUser().id) < 0; });
       var nextEvents = events.slice(0, 4);
+      var serviceAlerts = users.filter(function (u) { return u.role !== "admin" && u.status === "ativo"; }).map(function (u) {
+        return { u: u, st: N.serviceStats(u.id) };
+      }).filter(function (x) { return !x.st.lastDate || x.st.daysSince >= 60; })
+        .sort(function (a, b) { return (b.st.daysSince == null ? 99999 : b.st.daysSince) - (a.st.daysSince == null ? 99999 : a.st.daysSince); });
 
       var body =
         '<div class="hero-banner"><div class="row-between" style="align-items:flex-start">' +
@@ -152,6 +155,17 @@
               (!pendingSwaps.length && !users.some(function (u) { return u.status !== "ativo"; }) && !onRest.length
                 ? '<div class="alert ok">' + N.icon("check") + "<div>Nenhuma pendência administrativa no momento.</div></div>" : "") +
             "</div>" +
+            '<div class="card"><div class="card-title"><h3>Alertas de serviço</h3><button class="btn-link" data-nav="usuarios">Ver usuários</button></div>' +
+              (serviceAlerts.length ? serviceAlerts.slice(0, 6).map(function (x) {
+                var sub = x.st.lastDate
+                  ? "Serviu " + x.st.total + (x.st.total === 1 ? " vez" : " vezes") + " · último em " + U.fmtDate(x.st.lastDate) + " · há " + x.st.daysSince + (x.st.daysSince === 1 ? " dia" : " dias")
+                  : "Ainda não serviu nenhuma vez desde o cadastro";
+                return '<div class="list-item" data-service-alert="' + esc(x.u.id) + '"><div class="li-body"><div class="li-title">' + esc(x.u.name) + '</div><div class="li-sub">' + esc(sub) + '</div></div><span class="badge ' + (x.st.lastDate ? "amber" : "red") + '">' + (x.st.lastDate ? x.st.daysSince + " dias" : "Nunca") + "</span></div>";
+              }).join("") +
+              (serviceAlerts.length > 6 ? '<div class="tiny" style="margin-top:6px;letter-spacing:0;text-transform:none;color:#6f757d">+' + (serviceAlerts.length - 6) + " pessoa(s) na mesma situação.</div>" : "") +
+              '<div class="tiny" style="margin-top:8px;letter-spacing:0;text-transform:none;color:#6f757d">Critério: 60 dias ou mais sem servir, ou nenhum serviço registrado. O detalhe de cada cadastro mostra o total de serviços e a data do último.</div>'
+                : '<div class="alert ok">' + N.icon("check") + "<div>Todos os voluntários ativos serviram nos últimos 60 dias.</div></div>") +
+            "</div>" +
             '<div class="card"><div class="card-title"><h3>Avisos recentes</h3><button class="btn-link" data-nav="notificacoes">Ver todos</button></div>' +
               (unread.length ? unread.slice(0, 5).map(function (n) {
                 return '<div class="list-item"><div class="li-body"><div class="li-title">' + esc(n.title) + '</div><div class="li-sub">' + esc(n.text) + '</div></div><div class="li-time">' + esc(U.relative(n.at)) + "</div></div>";
@@ -169,6 +183,13 @@
       Array.prototype.forEach.call(document.querySelectorAll("[data-swaps]"), function (b) {
         b.addEventListener("click", function () { N.navigate("trocas"); });
       });
+      Array.prototype.forEach.call(document.querySelectorAll("[data-service-alert]"), function (row) {
+        row.addEventListener("click", function () {
+          var u = N.userById(row.getAttribute("data-service-alert"));
+          if (u) N.adminUi.usersQuery = u.name;
+          N.navigate("usuarios");
+        });
+      });
     }
   };
 
@@ -176,6 +197,10 @@
   function userDetail(u) {
     var teamNames = u.teamIds.map(function (id) { return (N.teamById(id) || {}).name; }).filter(Boolean).join(", ");
     var funcs = u.functions.map(function (f) { return N.roleName(f.teamId, f.roleId); }).filter(Boolean).join(", ");
+    var st = N.serviceStats(u.id);
+    var lastLabel = st.lastDate
+      ? U.fmtDate(st.lastDate) + " · há " + st.daysSince + (st.daysSince === 1 ? " dia" : " dias")
+      : '<span class="badge amber">Ainda não serviu</span>';
     return '<div class="detail-box">' +
       '<div><div class="d-label">E-mail de acesso</div><div class="d-val">' + esc(u.email) + "</div></div>" +
       '<div><div class="d-label">Telefone / WhatsApp</div><div class="d-val">' + esc(u.phone) + "</div></div>" +
@@ -183,6 +208,8 @@
       '<div><div class="d-label">Equipes</div><div class="d-val">' + esc(teamNames || "—") + "</div></div>" +
       '<div><div class="d-label">Funções</div><div class="d-val">' + esc(funcs || "—") + "</div></div>" +
       '<div><div class="d-label">Condutor(a)</div><div class="d-val">' + esc(u.conductor || "—") + "</div></div>" +
+      '<div><div class="d-label">Serviços realizados</div><div class="d-val">' + st.total + " serviço(s) · " + st.monthCount + " neste mês" + (st.future ? " · " + st.future + " agendado(s)" : "") + "</div></div>" +
+      '<div><div class="d-label">Último serviço</div><div class="d-val">' + lastLabel + "</div></div>" +
       '<div><div class="d-label">Formulário de primeiro acesso</div><div class="d-val">' + (u.firstAccess && u.firstAccess.done ? "Enviado em " + esc(U.fmtDate(u.firstAccess.at.slice(0, 10))) + " · mês " + esc(firstAccessMonth(u)) : '<span class="badge amber">Pendente</span>') + "</div></div>" +
       '<div><div class="d-label">LGPD</div><div class="d-val">' + (u.lgpd && u.lgpd.status === "aceito" ? "Aceito em " + esc(U.fmtDate((u.lgpd.at || "").slice(0, 10))) + " · v" + esc(u.lgpd.version) : '<span class="badge red">' + esc(u.lgpd ? u.lgpd.status : "pendente") + "</span>") + "</div></div>" +
       (u.role === "dirigente" ? '<div><div class="d-label">Permissões administrativas</div><div class="d-val">' + esc((u.permissions || []).map(function (p) { var m = N.PERMISSIONS.find(function (x) { return x.id === p; }); return m ? m.label : p; }).join(", ") || "Nenhuma") + "</div></div>" : "") +
@@ -197,12 +224,23 @@
       "</div>";
   }
 
+  function userSubLine(u) {
+    var teams = (u.teamIds || []).map(function (t) { return (N.teamById(t) || {}).name; }).filter(Boolean).join(", ");
+    return (u.phone || "") + (teams ? " · " + teams : "");
+  }
+
+  function userMatches(u, q) {
+    return u.name.toLowerCase().indexOf(q) >= 0 || u.email.toLowerCase().indexOf(q) >= 0 ||
+      (u.phone || "").toLowerCase().indexOf(q) >= 0 ||
+      (u.teamIds || []).some(function (t) { return ((N.teamById(t) || {}).name || "").toLowerCase().indexOf(q) >= 0; });
+  }
+
   function renderUserTable(users, opts) {
     if (!users.length) return N.empty("Nenhum cadastro", "Nenhum usuário corresponde aos filtros selecionados.", "users");
     return '<div class="table-wrap"><table class="data"><thead><tr><th>Nome</th><th></th></tr></thead><tbody>' +
       users.map(function (u) {
         return '<tr class="expandable" data-user-row="' + esc(u.id) + '"><td><div class="cell-name">' + N.avatar(u.name) +
-          '<div><div style="font-weight:600">' + esc(u.name) + '</div><div class="tiny" style="text-transform:none;letter-spacing:0;color:#6f757d">' + esc(opts && opts.sub ? opts.sub(u) : "") + "</div></div>" +
+          '<div><div style="font-weight:600">' + esc(u.name) + '</div><div class="tiny" style="text-transform:none;letter-spacing:0;color:#6f757d">' + esc(opts && opts.sub ? opts.sub(u) : userSubLine(u)) + "</div></div>" +
           "</div></td>" +
           '<td class="text-right tiny" style="white-space:nowrap;color:#6f757d">' + N.icon("chevronDown") + " ver dados</td></tr>" +
           '<tr class="detail-row hidden" data-user-detail="' + esc(u.id) + '"><td colspan="2">' + userDetail(u) + "</td></tr>";
@@ -433,9 +471,7 @@
       var filtered = list.filter(active.filter);
       if (uiState.usersQuery) {
         var q = uiState.usersQuery.toLowerCase();
-        filtered = filtered.filter(function (u) {
-          return u.name.toLowerCase().indexOf(q) >= 0 || u.email.toLowerCase().indexOf(q) >= 0;
-        });
+        filtered = filtered.filter(function (u) { return userMatches(u, q); });
       }
       filtered.sort(function (a, b) { return a.name.localeCompare(b.name, "pt-BR"); });
 
@@ -446,15 +482,15 @@
             return '<button class="tab ' + (t.id === active.id ? "active" : "") + '" data-utab="' + t.id + '">' + esc(t.label) + '<span class="count">' + count + "</span></button>";
           }).join("") + "</div>" +
           '<div class="row" style="justify-content:space-between;margin-bottom:12px">' +
-            '<div class="row" style="gap:8px;flex:1"><input class="input" id="u-search" placeholder="Buscar por nome ou e-mail" value="' + esc(uiState.usersQuery) + '" style="max-width:340px" />' +
+            '<div class="row" style="gap:8px;flex:1"><input class="input" id="u-search" placeholder="Buscar por nome, e-mail, telefone ou equipe" value="' + esc(uiState.usersQuery) + '" style="max-width:340px" />' +
             '<span class="small muted">' + filtered.length + " cadastro(s)</span></div>" +
             (N.canManageUsers() ? '<button class="btn btn-primary btn-sm" id="new-user">' + N.icon("plus") + " Novo usuário</button>" : "") +
           "</div>" +
           '<div id="users-table">' + renderUserTable(filtered) + "</div>" +
         "</div>" +
-        '<div class="alert info" style="margin-top:14px">' + N.icon("shield") + "<div>A listagem mostra apenas o nome. Clique no nome para visualizar todos os dados do cadastro. Não existe criação pública de contas: apenas administradores cadastram, editam e excluem usuários.</div></div>";
+        '<div class="alert info" style="margin-top:14px">' + N.icon("shield") + "<div>Voluntários, dirigentes e administradores em uma única tela. A listagem mostra o nome, o telefone e as equipes; clique no nome para ver todos os dados, o histórico de serviços e as opções de edição. Não existe criação pública de contas: apenas administradores cadastram, editam e excluem usuários.</div></div>";
 
-      return N.pageHead("Usuários", "Cadastros, perfis, permissões e controle de acesso.", "") + body;
+      return N.pageHead("Usuários", "Cadastros de voluntários, dirigentes e administradores, com perfis, permissões e controle de acesso.", "") + body;
     },
     mount: function () {
       var table = document.getElementById("users-table");
@@ -470,7 +506,7 @@
           var map = { todos: function () { return true; }, admins: function (u) { return u.role === "admin"; }, dirigentes: function (u) { return u.role === "dirigente"; }, voluntarios: function (u) { return u.role === "voluntario"; }, pendentes: function (u) { return u.status === "pendente"; }, bloqueados: function (u) { return u.status === "bloqueado"; } };
           var f = map[uiState.usersTab] || map.todos;
           var q = search.value.toLowerCase();
-          return list.filter(f).filter(function (u) { return !q || u.name.toLowerCase().indexOf(q) >= 0 || u.email.toLowerCase().indexOf(q) >= 0; })
+          return list.filter(f).filter(function (u) { return userMatches(u, q); })
             .sort(function (a, b) { return a.name.localeCompare(b.name, "pt-BR"); });
         })();
         table.innerHTML = renderUserTable(filtered);
@@ -478,44 +514,6 @@
       });
       var btn = document.getElementById("new-user");
       if (btn) btn.addEventListener("click", function () { openUserModal(null); });
-    }
-  };
-
-  /* ================================ VOLUNTÁRIOS ================================ */
-  var volunteers = {
-    render: function () {
-      var list = scopedUsers().filter(function (u) { return u.role !== "admin"; });
-      if (uiState.volunteerQuery) {
-        var q = uiState.volunteerQuery.toLowerCase();
-        list = list.filter(function (u) {
-          return u.name.toLowerCase().indexOf(q) >= 0 || u.phone.toLowerCase().indexOf(q) >= 0 ||
-            u.teamIds.some(function (t) { return ((N.teamById(t) || {}).name || "").toLowerCase().indexOf(q) >= 0; });
-        });
-      }
-      list.sort(function (a, b) { return a.name.localeCompare(b.name, "pt-BR"); });
-      var body =
-        '<div class="card" style="padding:14px">' +
-          '<div class="row" style="justify-content:space-between;margin-bottom:12px">' +
-            '<div class="row" style="gap:8px;flex:1"><input class="input" id="v-search" placeholder="Buscar voluntário, telefone ou equipe" value="' + esc(uiState.volunteerQuery) + '" style="max-width:340px" />' +
-            '<span class="small muted">' + list.length + " voluntário(s) e dirigente(s)</span></div>" +
-            (N.isAdmin() ? '<button class="btn btn-primary btn-sm" id="new-vol">' + N.icon("plus") + " Novo voluntário</button>" : "") +
-          "</div>" +
-          renderUserTable(list, { sub: function (u) { return u.phone + " · " + u.teamIds.map(function (t) { return (N.teamById(t) || {}).name; }).join(", "); } }) +
-        "</div>" +
-        '<div class="alert info" style="margin-top:14px">' + N.icon("info") + "<div>O cadastro do voluntário é integrado automaticamente ao módulo de usuários, evitando duplicidade. Um voluntário pode participar de várias equipes e funções, e cada pessoa pode pertencer às duas unidades.</div></div>";
-      return N.pageHead("Voluntários", "Dados, equipes, funções, condutor(a) e formulário de primeiro acesso.", "") + body;
-    },
-    mount: function () {
-      userExpandedActions(document);
-      var search = document.getElementById("v-search");
-      if (search) search.addEventListener("input", function () {
-        uiState.volunteerQuery = search.value;
-        N.render();
-        var el = document.getElementById("v-search");
-        if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); }
-      });
-      var b = document.getElementById("new-vol");
-      if (b) b.addEventListener("click", function () { openUserModal(null); });
     }
   };
 
@@ -1038,6 +1036,16 @@
         });
       }
       var body =
+        '<div class="card" style="padding:14px;margin-bottom:14px">' +
+          '<div class="card-title"><h3>Transferir cadastros entre navegadores</h3></div>' +
+          '<p class="small muted" style="margin:0 0 12px">Os dados ficam salvos no navegador deste dispositivo. Para abrir o sistema em outro navegador, celular ou conta, baixe o backup aqui e importe no outro dispositivo. O arquivo inclui cadastros, equipes, eventos, escalas, consentimentos e histórico.</p>' +
+          '<div class="row" style="gap:8px;flex-wrap:wrap">' +
+            '<button class="btn btn-primary btn-sm" id="backup-export">' + N.icon("download") + " Baixar backup</button>" +
+            '<label class="btn btn-ghost btn-sm" for="backup-file" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px;margin:0">' + N.icon("upload") + " Importar backup</label>" +
+            '<input type="file" id="backup-file" accept="application/json,.json" class="hidden" />' +
+          "</div>" +
+          '<div class="tiny" style="margin-top:10px;letter-spacing:0;text-transform:none;color:#6f757d">Ao importar, os dados atuais deste navegador são substituídos pelos dados do arquivo. A importação fica registrada no histórico.</div>' +
+        "</div>" +
         '<div class="card" style="padding:14px">' +
           '<div class="row" style="justify-content:space-between;margin-bottom:12px">' +
             '<input class="input" id="h-search" placeholder="Buscar por ação, alvo ou responsável" value="' + esc(uiState.historyQuery) + '" style="max-width:360px" />' +
@@ -1072,12 +1080,29 @@
         var el = document.getElementById("h-search");
         if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); }
       });
+      var exp = document.getElementById("backup-export");
+      if (exp) exp.addEventListener("click", function () {
+        N.download("agentes-do-amor-ami-" + U.todayISO() + ".json", N.exportBackup());
+        N.toast("Backup gerado. Guarde o arquivo e importe no outro dispositivo.", "ok");
+      });
+      var file = document.getElementById("backup-file");
+      if (file) file.addEventListener("change", function () {
+        var f = file.files && file.files[0];
+        if (!f) return;
+        var reader = new FileReader();
+        reader.onload = function () {
+          var res = N.importBackup(String(reader.result || ""));
+          if (!res.ok) { N.toast(res.message, "warn"); return; }
+          N.toast("Backup importado com sucesso.", "ok");
+          N.render();
+        };
+        reader.readAsText(f);
+      });
     }
   };
 
   N.views["painel"] = panel;
   N.views["usuarios"] = users;
-  N.views["voluntarios"] = volunteers;
   N.views["equipes"] = teams;
   N.views["eventos"] = events;
   N.views["disponibilidades"] = availabilityAdmin;

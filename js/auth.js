@@ -91,7 +91,9 @@
       var res = N.login(email, authState.unit, authState.consent || "aceito");
       if (!res.ok) {
         if (res.blocked) { authState.blocked = { email: email }; renderBlocked(res.message); return; }
-        showError(res.message);
+        showError(res.message, /não encontrado/i.test(res.message)
+          ? "Os cadastros ficam salvos no navegador onde foram criados. Se a conta foi cadastrada em outro dispositivo, peça ao administrador para importar o backup em Histórico → Transferir cadastros entre navegadores."
+          : "");
         return;
       }
       authState.consent = null;
@@ -105,10 +107,11 @@
     input.focus();
   }
 
-  function showError(msg) {
+  function showError(msg, hint) {
     authState.error = msg;
     var box = document.getElementById("login-error");
-    if (box) box.innerHTML = '<div class="alert danger">' + esc(msg) + "</div>";
+    if (box) box.innerHTML = '<div class="alert danger">' + esc(msg) +
+      (hint ? '<div class="tiny" style="margin-top:7px;letter-spacing:0;text-transform:none;color:#ffc2ca">' + esc(hint) + "</div>" : "") + "</div>";
   }
 
   function renderBlocked(message) {

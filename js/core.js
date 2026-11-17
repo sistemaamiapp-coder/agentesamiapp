@@ -6,8 +6,8 @@ window.AMI = window.AMI || {};
   var STORAGE_KEY = "ami_state_v1";
   var SESSION_KEY = "ami_session_v1";
   var TERM_VERSION = "1.0";
-  var MANUAL_VERSION = "1.2";
-  var MANUAL_DATE = "14/11/2026";
+  var MANUAL_VERSION = "1.3";
+  var MANUAL_DATE = "17/11/2026";
   var LGPD_LAW = "Lei nº 13.709/2018";
 
   var MONTHS = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
@@ -133,6 +133,29 @@ window.AMI = window.AMI || {};
     state = seed();
     persist();
     return state;
+  }
+
+  function exportBackup() {
+    return JSON.stringify({ app: "Agentes do Amor AMI", exportedAt: new Date().toISOString(), state: state }, null, 2);
+  }
+
+  function importBackup(text) {
+    try {
+      var parsed = JSON.parse(text);
+      var st = parsed && parsed.state ? parsed.state : parsed;
+      if (!st || !Array.isArray(st.users) || !Array.isArray(st.schedules)) {
+        return { ok: false, message: "Arquivo inválido: selecione um backup gerado pelo próprio sistema." };
+      }
+      state = st;
+      migrate(state);
+      persist();
+      var ses = getSession();
+      if (ses && !state.users.some(function (u) { return u.id === ses.userId; })) clearSession();
+      audit("Backup importado", "Dados do sistema", null, { usuarios: state.users.length, escalas: state.schedules.length });
+      return { ok: true };
+    } catch (e) {
+      return { ok: false, message: "Não foi possível ler o arquivo selecionado." };
+    }
   }
 
   function migrate(st) {
@@ -630,6 +653,23 @@ window.AMI = window.AMI || {};
     list.sort(function (a, b) { return (a.event.date + a.event.time).localeCompare(b.event.date + b.event.time); });
     return list;
   }
+  function serviceStats(userId) {
+    var today = todayISO();
+    var stats = { total: 0, monthCount: 0, future: 0, lastDate: null, daysSince: null };
+    S().schedules.forEach(function (sc) {
+      var ev = eventById(sc.eventId);
+      if (!ev) return;
+      sc.assignments.forEach(function (a) {
+        if (a.userId !== userId || a.status === "recusado" || a.status === "vaga_aberta") return;
+        if (ev.date > today) { stats.future++; return; }
+        stats.total++;
+        if (monthOf(ev.date) === monthOf(today)) stats.monthCount++;
+        if (!stats.lastDate || ev.date > stats.lastDate) stats.lastDate = ev.date;
+      });
+    });
+    if (stats.lastDate) stats.daysSince = Math.round((parseISO(today) - parseISO(stats.lastDate)) / 86400000);
+    return stats;
+  }
   function restRecord(userId, month) {
     return S().rests.find(function (r) { return r.userId === userId && r.month === month; }) || null;
   }
@@ -760,7 +800,7 @@ window.AMI = window.AMI || {};
     var u = S().users.find(function (x) { return x.email.toLowerCase() === mail; });
     if (!u) return { ok: false, message: "E-mail não encontrado. Somente administradores cadastram novos usuários." };
     if (u.units.indexOf(unitId) < 0) {
-      return { ok: false, message: "Este e-mail não possui acesso à unidade " + unitName(unitId) + "." };
+      return { ok: false, message: "Este e-mail não possui acesso à unidade " + unitName(unitId) + ". Acesso liberado para: " + u.units.map(unitName).join(" e ") + "." };
     }
     if (consent === "recusado") {
       recordConsent(u.id, "recusado");
@@ -1084,6 +1124,8 @@ window.AMI = window.AMI || {};
   N.persist = persist;
   N.load = load;
   N.seed = seed;
+  N.exportBackup = exportBackup;
+  N.importBackup = importBackup;
 
   N.userById = userById;
   N.teamById = teamById;
@@ -1114,6 +1156,7 @@ window.AMI = window.AMI || {};
 
   N.serviceCount = serviceCount;
   N.assignmentsOf = assignmentsOf;
+  N.serviceStats = serviceStats;
   N.restRecord = restRecord;
   N.isOnRest = isOnRest;
   N.conflicts = conflicts;

@@ -354,6 +354,10 @@
         team: recipients[0].team || "—", role: recipients[0].func || recipients[0].role || "—",
         link: confirmLink(recipients[0].id), motivo: waState.motivo || "—"
       }) : "Selecione os destinatários para visualizar a mensagem.";
+      var groupLink = "https://wa.me/?text=" + encodeURIComponent(N.templateBody(waState.template, {
+        name: "pessoal", event: scopeEvent, unit: N.unitName(scopeUnit),
+        team: "—", role: "—", link: SITE_URL, motivo: waState.motivo || "—"
+      }));
 
       var body =
         '<div class="grid-2" style="align-items:start">' +
@@ -379,11 +383,14 @@
                   var on = !!waState.selected[u.id];
                   return '<label class="check" style="padding:6px 4px"><input type="checkbox" data-recipient="' + esc(u.id) + '"' + (on ? " checked" : "") + " /> <span>" + esc(u.name) + " <span class=\"muted\">· " + esc(u.phone) + "</span></span></label>";
                 }).join("") + "</div>" : "") +
-              '<div class="alert warn" style="margin-top:12px">' + N.icon("alert") + "<div>As mensagens de uma escala são preparadas em <b>uma única operação</b> para todos os selecionados. O envio é feito exclusivamente por links <b>wa.me</b>, que abrem a conversa individual de cada pessoa no WhatsApp.</div></div>" +
+              '<div class="alert warn" style="margin-top:12px">' + N.icon("alert") + "<div>As mensagens de uma escala são preparadas em <b>uma única operação</b> para todos os selecionados. O envio é feito exclusivamente por links <b>wa.me</b>, que abrem a conversa individual de cada pessoa no WhatsApp. Para encaminhar o mesmo texto a um grupo ou lista de transmissão, use <b>Enviar para um grupo</b>: o WhatsApp abre a escolha da conversa e o texto vai em uma única mensagem.</div></div>" +
             "</div>" +
             '<div class="card"><div class="card-title"><h3>Pré-visualização</h3><span class="hint">' + recipients.length + " destinatário(s)</span></div>" +
               '<pre class="mono" style="white-space:pre-wrap;font-size:11.5px;color:#c9ccd1;margin:0">' + esc(preview) + "</pre>" +
-              '<div class="btn-group" style="margin-top:14px"><button class="btn btn-primary" id="w-prepare">' + N.icon("whatsapp") + " Preparar e enviar (" + recipients.length + ")</button></div>" +
+              '<div class="btn-group" style="margin-top:14px">' +
+                '<button class="btn btn-primary" id="w-prepare">' + N.icon("whatsapp") + " Preparar e enviar (" + recipients.length + ")</button>" +
+                '<a class="btn btn-ghost" href="' + esc(groupLink) + '" target="_blank" rel="noopener">' + N.icon("whatsapp") + " Enviar para um grupo</a>" +
+              "</div>" +
             "</div>" +
           "</div>" +
           '<div class="card"><div class="card-title"><h3>Destinatários selecionados</h3></div>' +
@@ -437,6 +444,10 @@
         var ev = N.eventById(waState.eventId);
         var scopeEvent = waState.mode === "escala" ? ev : null;
         var scopeUnit = waState.mode === "escala" ? (ev ? ev.unit : waState.unit) : waState.unit;
+        var groupLink = "https://wa.me/?text=" + encodeURIComponent(N.templateBody(waState.template, {
+          name: "pessoal", event: scopeEvent, unit: N.unitName(scopeUnit),
+          team: "—", role: "—", link: SITE_URL, motivo: waState.motivo || "—"
+        }));
         var links = recipients.map(function (r) {
           var text = N.templateBody(waState.template, {
             name: r.name.split(" ")[0], event: scopeEvent, unit: N.unitName(scopeUnit),
@@ -454,7 +465,9 @@
               return '<div class="list-item">' + N.avatar(l.name) + '<div class="li-body"><div class="li-title">' + esc(l.name) + '</div><div class="li-sub">' + esc(l.phone) + "</div></div>" +
               '<a class="btn btn-primary btn-sm" href="' + esc(l.link) + '" target="_blank" rel="noopener">Abrir conversa</a></div>';
             }).join(""),
-          footer: '<button class="btn btn-ghost" data-close>Fechar</button><button class="btn btn-primary" id="open-all">Abrir todas as conversas</button>',
+          footer: '<button class="btn btn-ghost" data-close>Fechar</button>' +
+            '<a class="btn btn-ghost" href="' + esc(groupLink) + '" target="_blank" rel="noopener">Enviar o mesmo texto a um grupo</a>' +
+            '<button class="btn btn-primary" id="open-all">Abrir todas as conversas</button>',
           onMount: function (wrap) {
             wrap.querySelector("#open-all").addEventListener("click", function () {
               links.forEach(function (l, i) {

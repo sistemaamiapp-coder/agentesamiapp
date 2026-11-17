@@ -7,7 +7,6 @@
   var ROUTES = {
     painel: { title: "Painel", adminOnly: true },
     usuarios: { title: "Usuários", adminOnly: true },
-    voluntarios: { title: "Voluntários", adminOnly: true },
     equipes: { title: "Equipes e funções", perm: "equipes" },
     eventos: { title: "Eventos", adminOnly: true },
     escalas: { title: "Escalas", perm: "escalas" },
@@ -81,7 +80,6 @@
       sections.push({ label: "Gestão", items: [
         { id: "painel", icon: "dashboard", label: "Painel" },
         { id: "usuarios", icon: "users", label: "Usuários" },
-        { id: "voluntarios", icon: "volunteer", label: "Voluntários" },
         { id: "equipes", icon: "teams", label: "Equipes" },
         { id: "eventos", icon: "calendar", label: "Eventos" },
         { id: "escalas", icon: "scale", label: "Escalas" },
