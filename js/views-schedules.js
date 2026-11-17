@@ -379,7 +379,7 @@
                   var on = !!waState.selected[u.id];
                   return '<label class="check" style="padding:6px 4px"><input type="checkbox" data-recipient="' + esc(u.id) + '"' + (on ? " checked" : "") + " /> <span>" + esc(u.name) + " <span class=\"muted\">· " + esc(u.phone) + "</span></span></label>";
                 }).join("") + "</div>" : "") +
-              '<div class="alert warn" style="margin-top:12px">' + N.icon("alert") + "<div>As mensagens são preparadas em <b>uma única operação</b> para todos os selecionados, com a mesma saudação para todos e o link individual de confirmação. Cada pessoa tem três caminhos: <b>aplicativo</b> (wa.me), <b>WhatsApp Web</b> (abre no navegador com o texto já preenchido) e <b>copiar a mensagem</b>. Use <b>Enviar a todos de uma vez</b> para abrir todas as conversas no WhatsApp Web.</div></div>" +
+              '<div class="alert warn" style="margin-top:12px">' + N.icon("alert") + "<div>As mensagens são preparadas em <b>uma única operação</b> para todos os selecionados, com a mesma saudação para todos e o link individual de confirmação. Cada pessoa tem três caminhos: <b>aplicativo</b> (wa.me), <b>WhatsApp Web</b> (abre no navegador com o texto já preenchido) e <b>copiar a mensagem</b>. Use <b>Enviar a todos de uma vez</b> para abrir todas as conversas no WhatsApp Web; na primeira vez, permita pop-ups para este site.</div></div>" +
             "</div>" +
             '<div class="card"><div class="card-title"><h3>Pré-visualização</h3><span class="hint">' + recipients.length + " destinatário(s)</span></div>" +
               '<pre class="mono" style="white-space:pre-wrap;font-size:11.5px;color:#c9ccd1;margin:0">' + esc(preview) + "</pre>" +
